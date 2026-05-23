@@ -20,7 +20,7 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_USER     = "${env.DOCKERHUB_USER ?: 'your-dockerhub-username'}"
+        DOCKERHUB_USER     = "${env.DOCKERHUB_USER ?: 'rajusw804'}"
         IMAGE_TAG          = "${env.BUILD_NUMBER}"
         USER_IMAGE         = "${DOCKERHUB_USER}/user-service:${IMAGE_TAG}"
         PRODUCT_IMAGE      = "${DOCKERHUB_USER}/product-service:${IMAGE_TAG}"
@@ -119,8 +119,8 @@ pipeline {
     post {
         success {
             echo "Deployed user-service=${USER_IMAGE} and product-service=${PRODUCT_IMAGE}."
-            echo "Test:  curl http://<worker-public-ip>:30081/users"
-            echo "       curl http://<worker-public-ip>:30082/products"
+            echo "Test:  curl http://13.220.171.178:30081/users"
+            echo "       curl http://13.220.171.178:30082/products"
         }
         failure {
             echo "Pipeline failed. Check the stage logs above."
