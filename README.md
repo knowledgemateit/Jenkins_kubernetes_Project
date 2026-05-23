@@ -1,6 +1,6 @@
 # Jenkins + Kubernetes on EC2 — End-to-End Project (EC2-only)
 
-A complete CI/CD pipeline running **entirely on AWS EC2** (Ubuntu 22.04). You launch one small "deploy" EC2, SSH in, and from there you provision and operate the rest. The workload is a **two-service microservices app** — `user-service` and `product-service`, each backed by its own PostgreSQL StatefulSet — built and deployed by Jenkins.
+A complete CI/CD pipeline running **entirely on AWS EC2** (Ubuntu 26.04 LTS). You launch one small "deploy" EC2, SSH in, and from there you provision and operate the rest. The workload is a **two-service microservices app** — `user-service` and `product-service`, each backed by its own PostgreSQL StatefulSet — built and deployed by Jenkins.
 
 ### Infrastructure (4 EC2s)
 
@@ -134,7 +134,7 @@ In the AWS Console:
 
 1. **EC2** → **Launch instance**.
 2. Name: `jenkins-k8s-deploy`.
-3. AMI: **Ubuntu Server 22.04 LTS** (Free Tier eligible).
+3. AMI: **Ubuntu Server 26.04 LTS** (HVM, EBS gp3). Free Tier eligible.
 4. Instance type: **t3.micro** (free tier). It only runs terraform/ssh.
 5. **Key pair** → Create new key pair → name `deploy-key` → RSA → `.pem` → Download. Save the `.pem` to your laptop (e.g. `~/Downloads/deploy-key.pem`).
 6. **Network settings** → Create a security group that allows **SSH (port 22) from My IP**.

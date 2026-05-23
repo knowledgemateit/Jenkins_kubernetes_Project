@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run this ONCE on a freshly-launched Ubuntu 22.04 EC2 (t3.micro is enough)
+# Run this ONCE on a freshly-launched Ubuntu 26.04 LTS EC2 (t3.micro is enough)
 # to turn it into your "deploy server" — the box from which you run Terraform
 # and SSH to the Jenkins/K8s nodes.
 #

@@ -1,10 +1,12 @@
-data "aws_ami" "ubuntu_2204" {
+data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical
 
+  # Match Ubuntu 26.04 LTS by version number — codename-agnostic so it
+  # keeps working as Canonical publishes new dot releases.
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd*/ubuntu-*-26.04-amd64-server-*"]
   }
 
   filter {
@@ -20,7 +22,7 @@ resource "aws_key_pair" "this" {
 
 # ---------- Jenkins server ----------
 resource "aws_instance" "jenkins" {
-  ami                         = data.aws_ami.ubuntu_2204.id
+  ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   key_name                    = aws_key_pair.this.key_name
   vpc_security_group_ids      = [aws_security_group.jenkins.id]
@@ -42,7 +44,7 @@ resource "aws_instance" "jenkins" {
 
 # ---------- K8s master ----------
 resource "aws_instance" "k8s_master" {
-  ami                         = data.aws_ami.ubuntu_2204.id
+  ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   key_name                    = aws_key_pair.this.key_name
   vpc_security_group_ids      = [aws_security_group.k8s.id]
@@ -64,7 +66,7 @@ resource "aws_instance" "k8s_master" {
 
 # ---------- K8s worker ----------
 resource "aws_instance" "k8s_worker" {
-  ami                         = data.aws_ami.ubuntu_2204.id
+  ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   key_name                    = aws_key_pair.this.key_name
   vpc_security_group_ids      = [aws_security_group.k8s.id]
