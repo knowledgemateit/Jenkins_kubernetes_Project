@@ -6,10 +6,10 @@ project_name  = "jenkins-k8s"
 instance_type = "t3.medium"
 
 # Path to the SSH PUBLIC key (.pub) on the DEPLOY EC2.
-# scripts/setup-deploy-server.sh creates this for you at ~/.ssh/jenkins_k8s_key.pub
+# scripts/setup-deploy-server.sh creates this for you at ~/.ssh/project.pub
 # (~ is expanded by terraform via pathexpand(), so either form works.)
-public_key_path = "~/.ssh/jenkins_k8s_key.pub"
-key_name        = "jenkins-k8s-key"
+public_key_path = "~/.ssh/project.pub"
+key_name        = "project"
 
 # Lock these down to your IP for security. NOTE: must include the deploy EC2's
 # public IP, otherwise the deploy server cannot SSH/kubectl-into the new EC2s.

@@ -166,7 +166,7 @@ ssh -i $env:USERPROFILE\Downloads\deploy-key.pem ubuntu@<deploy_public_ip>
 git clone https://github.com/<you>/my-jenkins-k8s-project.git
 cd my-jenkins-k8s-project
 
-# Bootstrap: installs terraform + aws cli + kubectl + generates ~/.ssh/jenkins_k8s_key
+# Bootstrap: installs terraform + aws cli + kubectl + generates ~/.ssh/project
 bash scripts/setup-deploy-server.sh
 
 # Confirm AWS access works (returns your account/identity, no access keys needed thanks to the IAM role)
@@ -182,7 +182,7 @@ cd ~/my-jenkins-k8s-project/terraform
 cp terraform.tfvars.example terraform.tfvars
 nano terraform.tfvars
 # The default values work as-is. The only one you MAY want to change:
-#   public_key_path  - already correct ("~/.ssh/jenkins_k8s_key.pub") if you
+#   public_key_path  - already correct ("~/.ssh/project.pub") if you
 #                      ran setup-deploy-server.sh
 #
 # If you want to tighten ssh_ingress_cidr to your laptop IP for security,
@@ -207,7 +207,7 @@ k8s_worker_public_ip   = "z.z.z.z"
 > The user-data scripts on the new EC2s install Jenkins/Docker/kubectl on one box and containerd/kubeadm/kubelet on the others. **Wait ~5–8 minutes** for these to finish before continuing. To check whether user-data is finished:
 >
 > ```bash
-> ssh -i ~/.ssh/jenkins_k8s_key -o StrictHostKeyChecking=no \
+> ssh -i ~/.ssh/project -o StrictHostKeyChecking=no \
 >     ubuntu@<ip> 'cloud-init status --wait && echo READY'
 > ```
 >
@@ -218,7 +218,7 @@ k8s_worker_public_ip   = "z.z.z.z"
 From the **deploy EC2**, SSH to the master:
 
 ```bash
-ssh -i ~/.ssh/jenkins_k8s_key -o StrictHostKeyChecking=no ubuntu@<k8s_master_public_ip>
+ssh -i ~/.ssh/project -o StrictHostKeyChecking=no ubuntu@<k8s_master_public_ip>
 ```
 
 On the master, clone the repo and run the init script:
@@ -235,7 +235,7 @@ Open a **second terminal** on your laptop, SSH back to the deploy EC2, then to t
 
 ```bash
 ssh -i ~/Downloads/deploy-key.pem ubuntu@<deploy_public_ip>
-ssh -i ~/.ssh/jenkins_k8s_key -o StrictHostKeyChecking=no ubuntu@<k8s_worker_public_ip>
+ssh -i ~/.ssh/project -o StrictHostKeyChecking=no ubuntu@<k8s_worker_public_ip>
 sudo <paste-the-kubeadm-join-command-here>
 ```
 
@@ -260,18 +260,18 @@ Jenkins needs the master's kubeconfig so it can run `kubectl apply`. The flow:
 
 ```bash
 # (you should be on the deploy EC2, not the master)
-scp -i ~/.ssh/jenkins_k8s_key ~/.ssh/jenkins_k8s_key \
+scp -i ~/.ssh/project ~/.ssh/project \
     ubuntu@<k8s_master_public_ip>:~/.ssh/
 ```
 
 **SSH to the master** and push kubeconfig over:
 
 ```bash
-ssh -i ~/.ssh/jenkins_k8s_key ubuntu@<k8s_master_public_ip>
+ssh -i ~/.ssh/project ubuntu@<k8s_master_public_ip>
 
 # (now on the master)
-chmod 600 ~/.ssh/jenkins_k8s_key
-scp -i ~/.ssh/jenkins_k8s_key -o StrictHostKeyChecking=no \
+chmod 600 ~/.ssh/project
+scp -i ~/.ssh/project -o StrictHostKeyChecking=no \
     ~/.kube/config ubuntu@<jenkins_private_ip>:/tmp/kubeconfig
 exit
 ```
@@ -279,7 +279,7 @@ exit
 **SSH to the Jenkins EC2** (from the deploy server) and install the kubeconfig:
 
 ```bash
-ssh -i ~/.ssh/jenkins_k8s_key ubuntu@<jenkins_public_ip>
+ssh -i ~/.ssh/project ubuntu@<jenkins_public_ip>
 
 # (now on the Jenkins EC2)
 sudo mkdir -p /var/lib/jenkins/.kube
@@ -424,7 +424,7 @@ Stop the instances or `terraform destroy` after each lab session.
 | Symptom | Fix |
 |---|---|
 | `terraform apply`: `NoCredentialProviders` | IAM role not attached to the deploy EC2. AWS Console → EC2 → select instance → Actions → Security → Modify IAM role → pick `jenkins-k8s-deploy-role`. |
-| `terraform apply` errors on `public_key_path` | Path must be the `.pub` file `setup-deploy-server.sh` generated. Default: `/home/ubuntu/.ssh/jenkins_k8s_key.pub`. |
+| `terraform apply` errors on `public_key_path` | Path must be the `.pub` file `setup-deploy-server.sh` generated. Default: `/home/ubuntu/.ssh/project.pub`. |
 | Can't SSH right after `terraform apply` | User-data is still running. Wait 5–8 min; check `/var/log/cloud-init-output.log` on the new EC2. |
 | `kubectl get nodes` shows NotReady | Calico didn't apply. Re-run the `kubectl apply -f .../calico.yaml` line from [scripts/setup-k8s-master.sh](scripts/setup-k8s-master.sh). |
 | Jenkins build fails on `docker: permission denied` | `jenkins` user not in docker group — Step 8.4. |
@@ -436,7 +436,7 @@ Stop the instances or `terraform destroy` after each lab session.
 | App logs show `password authentication failed` | The Spring Boot pod and the matching Postgres are reading from different Secrets. Double-check the Secret names in `04-user-service.yaml` / `05-product-service.yaml` match `02-user-db.yaml` / `03-product-db.yaml`. |
 | Want to inspect Postgres data | `kubectl -n demo-app exec -it user-postgres-0 -- psql -U useradmin -d users` then `\dt` and `SELECT * FROM users;` |
 | Lost the `kubeadm join` command | Regenerate on master: `sudo kubeadm token create --print-join-command`. |
-| `Permission denied (publickey)` SSHing master→worker | Copy `jenkins_k8s_key` (private) onto the master with `scp` from the deploy EC2 first. |
+| `Permission denied (publickey)` SSHing master→worker | Copy `project` (private) onto the master with `scp` from the deploy EC2 first. |
 | Deploy EC2 can't SSH to the new EC2s after locking down `ssh_ingress_cidr` | The CIDR must include the deploy EC2's public IP. Easiest fix: set `ssh_ingress_cidr = "0.0.0.0/0"` and `terraform apply` again. |
 | `terraform apply` fails on `file()` for `public_key_path` | Path doesn't exist yet — run `bash scripts/setup-deploy-server.sh` first to generate the key. |
 

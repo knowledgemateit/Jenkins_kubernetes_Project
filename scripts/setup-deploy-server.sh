@@ -41,8 +41,8 @@ if ! command -v kubectl >/dev/null 2>&1; then
 fi
 
 # --- Generate the SSH key Terraform will install on Jenkins/K8s EC2s ---
-if [ ! -f "$HOME/.ssh/jenkins_k8s_key" ]; then
-    ssh-keygen -t rsa -b 4096 -N "" -f "$HOME/.ssh/jenkins_k8s_key"
+if [ ! -f "$HOME/.ssh/project" ]; then
+    ssh-keygen -t rsa -b 4096 -N "" -f "$HOME/.ssh/project"
 fi
 
 echo
@@ -56,8 +56,8 @@ kubectl version --client --output=yaml 2>/dev/null | head -n2 || true
 git --version
 echo
 echo "SSH key generated at:"
-echo "  ~/.ssh/jenkins_k8s_key       (private — keep secret)"
-echo "  ~/.ssh/jenkins_k8s_key.pub   (public  — Terraform installs this on the new EC2s)"
+echo "  ~/.ssh/project       (private — keep secret)"
+echo "  ~/.ssh/project.pub   (public  — Terraform installs this on the new EC2s)"
 echo
 echo "Next: verify AWS auth works, then clone the project and run terraform."
 echo "  aws sts get-caller-identity"

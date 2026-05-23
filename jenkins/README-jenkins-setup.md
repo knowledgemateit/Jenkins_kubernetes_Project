@@ -7,7 +7,7 @@ Reference notes for the Jenkins-specific portions of the main [README.md](../REA
 Open `http://<jenkins_public_ip>:8080`. Jenkins asks for the initial admin password. From the **deploy EC2**, SSH into the Jenkins box and read it:
 
 ```bash
-ssh -i ~/.ssh/jenkins_k8s_key ubuntu@<jenkins_public_ip>
+ssh -i ~/.ssh/project ubuntu@<jenkins_public_ip>
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 ```
 
@@ -46,19 +46,19 @@ After you've run `setup-k8s-master.sh` on the master and the worker has joined, 
 ```bash
 # 5a. From the deploy EC2 — make the SSH private key available on the master
 #     (so master can scp the kubeconfig to Jenkins).
-scp -i ~/.ssh/jenkins_k8s_key ~/.ssh/jenkins_k8s_key \
+scp -i ~/.ssh/project ~/.ssh/project \
     ubuntu@<k8s_master_public_ip>:~/.ssh/
 
 # 5b. SSH from the deploy EC2 into the master
-ssh -i ~/.ssh/jenkins_k8s_key ubuntu@<k8s_master_public_ip>
+ssh -i ~/.ssh/project ubuntu@<k8s_master_public_ip>
 
 # 5c. (on master) Copy kubeconfig to the Jenkins server's ubuntu user
-chmod 600 ~/.ssh/jenkins_k8s_key
-scp -i ~/.ssh/jenkins_k8s_key -o StrictHostKeyChecking=no \
+chmod 600 ~/.ssh/project
+scp -i ~/.ssh/project -o StrictHostKeyChecking=no \
     ~/.kube/config ubuntu@<jenkins_private_ip>:/tmp/kubeconfig
 
 # 5d. (still on master) Hop to Jenkins to install it for the jenkins user
-ssh -i ~/.ssh/jenkins_k8s_key ubuntu@<jenkins_private_ip>
+ssh -i ~/.ssh/project ubuntu@<jenkins_private_ip>
 sudo mkdir -p /var/lib/jenkins/.kube
 sudo mv /tmp/kubeconfig /var/lib/jenkins/.kube/config
 sudo chown -R jenkins:jenkins /var/lib/jenkins/.kube
