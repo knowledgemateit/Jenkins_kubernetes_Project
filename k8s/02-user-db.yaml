@@ -1,0 +1,86 @@
+# PostgreSQL for user-service: Secret + StatefulSet + headless Service.
+# WARNING — the Secret here uses sample dev credentials. For production,
+# generate with `kubectl create secret generic ... --from-literal=...` and
+# do not commit the manifest. See README "Production hardening".
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: user-db-secret
+  namespace: demo-app
+type: Opaque
+stringData:
+  POSTGRES_DB: users
+  POSTGRES_USER: useradmin
+  POSTGRES_PASSWORD: changeme-user-pw
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-postgres
+  namespace: demo-app
+  labels:
+    app: user-postgres
+spec:
+  clusterIP: None
+  selector:
+    app: user-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: user-postgres
+  namespace: demo-app
+spec:
+  serviceName: user-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-postgres
+  template:
+    metadata:
+      labels:
+        app: user-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          envFrom:
+            - secretRef:
+                name: user-db-secret
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "useradmin", "-d", "users"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "useradmin", "-d", "users"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi

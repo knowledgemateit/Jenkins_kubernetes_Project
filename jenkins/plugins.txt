@@ -1,0 +1,12 @@
+# Jenkins plugins required by this project. Install via "Manage Jenkins" -> "Plugins" -> "Available".
+# Most are part of the "suggested" set, but the K8s/Docker ones must be added explicitly.
+git
+workflow-aggregator         # Pipeline
+pipeline-stage-view
+docker-workflow             # docker.* steps in Pipeline
+docker-plugin
+kubernetes-cli              # withKubeConfig + kubectl step
+credentials-binding
+blueocean                   # nicer pipeline UI (optional)
+timestamper
+ws-cleanup

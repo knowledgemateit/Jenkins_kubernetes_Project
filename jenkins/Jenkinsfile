@@ -1,0 +1,132 @@
+// CI/CD pipeline for the two-service microservices app:
+//   - user-service     -> postgres "users" DB
+//   - product-service  -> postgres "products" DB
+//
+// Each service is built/tested/imaged/deployed independently.
+//
+// Required Jenkins credentials:
+//   - dockerhub-creds   : Username + Password (your Docker Hub login)
+//
+// Optional parameter:
+//   - DOCKERHUB_USER    : your Docker Hub username (otherwise edit default below)
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    environment {
+        DOCKERHUB_USER     = "${env.DOCKERHUB_USER ?: 'your-dockerhub-username'}"
+        IMAGE_TAG          = "${env.BUILD_NUMBER}"
+        USER_IMAGE         = "${DOCKERHUB_USER}/user-service:${IMAGE_TAG}"
+        PRODUCT_IMAGE      = "${DOCKERHUB_USER}/product-service:${IMAGE_TAG}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            parallel {
+                stage('user-service') {
+                    steps {
+                        dir('app/user-service') {
+                            sh 'mvn -B -ntp clean package'
+                        }
+                    }
+                    post {
+                        always {
+                            junit testResults: 'app/user-service/target/surefire-reports/*.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+                stage('product-service') {
+                    steps {
+                        dir('app/product-service') {
+                            sh 'mvn -B -ntp clean package'
+                        }
+                    }
+                    post {
+                        always {
+                            junit testResults: 'app/product-service/target/surefire-reports/*.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            parallel {
+                stage('user-service image') {
+                    steps {
+                        sh 'docker build -t ${USER_IMAGE} app/user-service/'
+                    }
+                }
+                stage('product-service image') {
+                    steps {
+                        sh 'docker build -t ${PRODUCT_IMAGE} app/product-service/'
+                    }
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                                  usernameVariable: 'DH_USER',
+                                                  passwordVariable: 'DH_PASS')]) {
+                    sh '''
+                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                        docker push ${USER_IMAGE}
+                        docker push ${PRODUCT_IMAGE}
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    # Render manifests with the just-pushed image tags.
+                    mkdir -p k8s/rendered
+                    cp k8s/*.yaml k8s/rendered/
+                    sed -i "s|USER_SERVICE_IMAGE_PLACEHOLDER|${USER_IMAGE}|g"     k8s/rendered/04-user-service.yaml
+                    sed -i "s|PRODUCT_SERVICE_IMAGE_PLACEHOLDER|${PRODUCT_IMAGE}|g" k8s/rendered/05-product-service.yaml
+
+                    # Apply in order — namespace → DBs → services.
+                    kubectl apply -f k8s/rendered/
+
+                    # Wait for both deployments to roll out.
+                    kubectl -n demo-app rollout status statefulset/user-postgres   --timeout=180s
+                    kubectl -n demo-app rollout status statefulset/product-postgres --timeout=180s
+                    kubectl -n demo-app rollout status deployment/user-service     --timeout=180s
+                    kubectl -n demo-app rollout status deployment/product-service  --timeout=180s
+
+                    kubectl -n demo-app get pods,svc -o wide
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployed user-service=${USER_IMAGE} and product-service=${PRODUCT_IMAGE}."
+            echo "Test:  curl http://<worker-public-ip>:30081/users"
+            echo "       curl http://<worker-public-ip>:30082/products"
+        }
+        failure {
+            echo "Pipeline failed. Check the stage logs above."
+        }
+        always {
+            sh 'docker image prune -f --filter "until=24h" || true'
+        }
+    }
+}
