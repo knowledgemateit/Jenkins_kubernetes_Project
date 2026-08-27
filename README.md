@@ -191,7 +191,8 @@ nano terraform.tfvars
 # for the lab and lock down later.
 
 terraform init
-terraform apply -auto-approve
+ssh-keygen
+terraform apply -auto-approve -var="public_key_path=/root/.ssh/project.pub"
 ```
 
 When apply finishes, Terraform prints the public/private IPs of the three new EC2s:
