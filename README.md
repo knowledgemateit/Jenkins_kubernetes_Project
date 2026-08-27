@@ -163,8 +163,8 @@ ssh -i $env:USERPROFILE\Downloads\deploy-key.pem ubuntu@<deploy_public_ip>
 
 ```bash
 # Clone the project (use your GitHub URL)
-git clone https://github.com/<you>/my-jenkins-k8s-project.git
-cd my-jenkins-k8s-project
+git clone https://github.com/knowledgemateit/Jenkins_kubernetes_Project.git
+cd Jenkins_kubernetes_Project.git
 
 # Bootstrap: installs terraform + aws cli + kubectl + generates ~/.ssh/project
 bash scripts/setup-deploy-server.sh
@@ -225,8 +225,8 @@ ssh -i ~/.ssh/project -o StrictHostKeyChecking=no ubuntu@<k8s_master_public_ip>
 On the master, clone the repo and run the init script:
 
 ```bash
-git clone https://github.com/<you>/my-jenkins-k8s-project.git
-cd my-jenkins-k8s-project
+git clone https://github.com/knowledgemateit/Jenkins_kubernetes_Project.git
+cd Jenkins_kubernetes_Project.git
 sudo bash scripts/setup-k8s-master.sh
 ```
 
